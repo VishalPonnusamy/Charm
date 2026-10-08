@@ -1,0 +1,216 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="UTF-8" />
+  <style>
+    html, body { margin: 0; background: transparent; overflow: hidden; }
+    canvas { display: block; }
+  </style>
+</head>
+<body>
+<canvas id="c"></canvas>
+<script src="charm-draw.js"></script>
+<script>
+  const W = window.innerWidth, H = window.innerHeight;
+  const canvas = document.getElementById('c');
+  const ctx = canvas.getContext('2d');
+  const dpr = window.devicePixelRatio || 1;
+  canvas.width = W * dpr;
+  canvas.height = H * dpr;
+  canvas.style.width = W + 'px';
+  canvas.style.height = H + 'px';
+  ctx.scale(dpr, dpr);
+
+  const PIVOT_Y = 0;
+  let LENGTH = 180;        // the string's natural (max) length — adjustable from Studio
+  const MIN_LENGTH = 50;   // how close to the pivot you can drag a charm
+  const GRAVITY = 1500;       // calmer swing (was 2600)
+  const FRICTION = 0.45;      // settles sooner (was 0.32)
+  const MAX_OMEGA = 8;        // lower speed cap (was 14)
+  const MAX_DRAG_ANGLE = 2.4; // narrower drag range (was 2.8)
+  const DRAG_SMOOTH = 0.35;   // drag now eases toward the cursor instead of snapping 1:1
+
+  // Flexible rope (verlet chain) settings — a little slack so it can actually sag/trail
+  const ROPE_SEGMENTS = 9;
+  const ROPE_SLACK = 1.0;               // taut — straight when still, only bends during motion
+  function currentSegLen() { return (LENGTH * ROPE_SLACK) / ROPE_SEGMENTS; } // LENGTH can change live
+  const ROPE_GRAVITY = 120;
+  const ROPE_DAMPING = 0.985;
+  const ROPE_ITERATIONS = 8;
+
+  const SLOT_X = { left: W * 0.22, mid: W * 0.5, right: W * 0.78 };
+
+  // Live state: one swinging charm per slot
+  let pendulums = []; // [{ slot, charm, angle, omega, bx, by, dragging }]
+  let ropeStyle = 'thread';
+  let fillAmount = 1;
+
+  window.charmAPI.onUpdate((config) => {
+    if (Array.isArray(config.charms)) {
+      const bySlot = {};
+      pendulums.forEach(p => { bySlot[p.slot] = p; });
+      pendulums = config.charms.map((c) => {
+        const existing = bySlot[c.slot];
+        return existing
+          ? { ...existing, charm: c }
+          : { slot: c.slot, charm: c, angle: 0.6, omega: 0, bx: 0, by: 0, dragging: false, currentLength: LENGTH };
+      });
+    }
+    if (config.rope) ropeStyle = config.rope;
+    if (typeof config.ropeLength === 'number') LENGTH = config.ropeLength;
+    if (typeof config.fillAmount === 'number') fillAmount = config.fillAmount;
+  });
+
+  // ---------- mouse tracking (forwarded even while click-through) ----------
+  let mouseX = -999, mouseY = -999;
+  let hovering = false;      // is the cursor currently over any charm?
+  let dragTarget = null;     // the pendulum currently being dragged, if any
+
+  function hitTest(x, y) {
+    for (const p of pendulums) {
+      if (Math.hypot(x - p.bx, y - p.by) < p.charm.size + 15) return p;
+    }
+    return null;
+  }
+
+  function setHover(isHovering) {
+    if (isHovering === hovering) return;
+    hovering = isHovering;
+    window.charmAPI.setIgnoreMouse(!hovering); // false = window catches clicks now
+  }
+
+  window.addEventListener('mousemove', (e) => {
+    mouseX = e.clientX;
+    mouseY = e.clientY;
+
+    if (dragTarget) {
+      const dx = mouseX - (SLOT_X[dragTarget.slot] ?? W / 2);
+      const dy = mouseY - PIVOT_Y;
+      let desired = Math.atan2(dx, dy);
+      desired = Math.max(-MAX_DRAG_ANGLE, Math.min(MAX_DRAG_ANGLE, desired));
+      const now = performance.now();
+      const eased = dragTarget.angle + (desired - dragTarget.angle) * DRAG_SMOOTH;
+      if (dragTarget.lastDragT) {
+        const dt = (now - dragTarget.lastDragT) / 1000;
+        if (dt > 0) dragTarget.releaseOmega = (eased - dragTarget.angle) / dt;
+      }
+      dragTarget.angle = eased;
+      dragTarget.lastDragT = now;
+
+      // follow the cursor's distance from the pivot too — lets you pull the charm up
+      // close to the thread instead of only swinging it at a fixed length
+      const dist = Math.max(MIN_LENGTH, Math.min(LENGTH, Math.hypot(dx, dy)));
+      dragTarget.currentLength += (dist - dragTarget.currentLength) * DRAG_SMOOTH;
+    } else {
+      setHover(!!hitTest(mouseX, mouseY));
+    }
+  });
+
+  window.addEventListener('mousedown', (e) => {
+    const target = hitTest(mouseX, mouseY);
+    if (target) {
+      dragTarget = target;
+      dragTarget.dragging = true;
+      dragTarget.lastDragT = performance.now();
+      dragTarget.releaseOmega = 0;
+    }
+  });
+
+  window.addEventListener('mouseup', () => {
+    if (dragTarget) {
+      dragTarget.dragging = false;
+      dragTarget.omega = dragTarget.releaseOmega || 0;
+      dragTarget = null;
+    }
+    setHover(!!hitTest(mouseX, mouseY));
+  });
+
+  // ---------- flexible rope (verlet chain) ----------
+  function initRopeNodes(pivotX, ax, ay) {
+    const nodes = [];
+    for (let i = 0; i <= ROPE_SEGMENTS; i++) {
+      const t = i / ROPE_SEGMENTS;
+      const x = pivotX + (ax - pivotX) * t;
+      const y = PIVOT_Y + (ay - PIVOT_Y) * t;
+      nodes.push({ x, y, px: x, py: y });
+    }
+    return nodes;
+  }
+
+  function simulateRope(nodes, pivotX, ax, ay, dt) {
+    const dt2 = dt * dt;
+    nodes[0].x = pivotX; nodes[0].y = PIVOT_Y;           // pinned to the pivot
+    nodes[nodes.length - 1].x = ax; nodes[nodes.length - 1].y = ay; // pinned to the charm's string end
+
+    // verlet-integrate every free (interior) point
+    for (let i = 1; i < nodes.length - 1; i++) {
+      const n = nodes[i];
+      const vx = (n.x - n.px) * ROPE_DAMPING;
+      const vy = (n.y - n.py) * ROPE_DAMPING;
+      n.px = n.x; n.py = n.y;
+      n.x += vx;
+      n.y += vy + ROPE_GRAVITY * dt2;
+    }
+
+    // distance constraints, pinning the two end nodes
+    for (let iter = 0; iter < ROPE_ITERATIONS; iter++) {
+      for (let i = 0; i < nodes.length - 1; i++) {
+        const a = nodes[i], b = nodes[i + 1];
+        let dx = b.x - a.x, dy = b.y - a.y;
+        let dist = Math.hypot(dx, dy) || 0.0001;
+        const diff = (dist - currentSegLen()) / dist;
+        const aFixed = i === 0, bFixed = i === nodes.length - 2;
+        if (aFixed && bFixed) continue;
+        if (aFixed) { b.x -= dx * diff; b.y -= dy * diff; }
+        else if (bFixed) { a.x += dx * diff; a.y += dy * diff; }
+        else { a.x += dx * diff * 0.5; a.y += dy * diff * 0.5; b.x -= dx * diff * 0.5; b.y -= dy * diff * 0.5; }
+      }
+    }
+  }
+
+  let last = performance.now();
+
+  function frame(now) {
+    const dt = Math.min((now - last) / 1000, 0.033);
+    last = now;
+
+    ctx.clearRect(0, 0, W, H);
+
+    pendulums.forEach((p) => {
+      const pivotX = SLOT_X[p.slot] ?? W / 2;
+      const size = p.charm.size;
+
+      if (!p.dragging) {
+        // Pure pendulum physics only — no reaction to the cursor just passing by.
+        // The charm only moves if you actually click and drag it (see mousedown/mousemove below).
+        const alpha = -(GRAVITY / p.currentLength) * Math.sin(p.angle);
+        p.omega += alpha * dt;
+        p.omega *= Math.exp(-FRICTION * dt);
+        p.angle += p.omega * dt;
+        p.omega = Math.max(-MAX_OMEGA, Math.min(MAX_OMEGA, p.omega));
+        // spring the string back out to its natural length once you let go
+        p.currentLength += (LENGTH - p.currentLength) * Math.min(1, 4 * dt);
+      }
+
+      const s = Math.sin(p.angle), c = Math.cos(p.angle);
+      const ax = pivotX + p.currentLength * s, ay = PIVOT_Y + p.currentLength * c;
+      const bx = ax + size * s, by = ay + size * c;
+      p.bx = bx; p.by = by; // used by hitTest next frame
+
+      if (!p.ropeNodes) p.ropeNodes = initRopeNodes(pivotX, ax, ay);
+      simulateRope(p.ropeNodes, pivotX, ax, ay, dt);
+      drawFlexRope(ctx, p.ropeNodes, ropeStyle);
+
+      ctx.save();
+      ctx.translate(ax, ay); // the rope's actual end point — image top anchors here, no gap
+      ctx.rotate(-p.angle);
+      drawCharm(ctx, p.charm, fillAmount);
+      ctx.restore();
+    });
+
+    requestAnimationFrame(frame);
+  }
+  requestAnimationFrame(frame);
+</script>
+</body>
+</html>

@@ -1,0 +1,846 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="UTF-8" />
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:wght@500;600;700&family=Work+Sans:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg: #15120f;
+    --surface: #1e1912;
+    --surface-2: #26201770;
+    --line: #3a3024;
+    --brass: #c7a05c;
+    --brass-bright: #e6c583;
+    --ivory: #f1e9d8;
+    --muted: #a89b84;
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0;
+    padding: 28px 30px 40px;
+    background:
+      radial-gradient(circle at 50% -10%, #2a2318 0%, var(--bg) 55%);
+    color: var(--ivory);
+    font-family: 'Work Sans', sans-serif;
+  }
+  h1 {
+    font-family: 'Cormorant Garamond', serif;
+    font-weight: 600;
+    font-size: 30px;
+    letter-spacing: 0.01em;
+    margin: 0 0 2px;
+    color: var(--ivory);
+  }
+  .sub { color: var(--muted); font-size: 13px; margin-bottom: 22px; line-height: 1.5; }
+
+  .tabs { display: flex; gap: 22px; margin-bottom: 24px; border-bottom: 1px solid var(--line); }
+  .tab {
+    padding: 0 2px 10px;
+    cursor: pointer;
+    font-size: 14.5px;
+    color: var(--muted);
+    border-bottom: 2px solid transparent;
+    transition: color .15s ease, border-color .15s ease;
+  }
+  .tab:hover { color: var(--ivory); }
+  .tab.active { color: var(--brass-bright); border-bottom-color: var(--brass); }
+
+  .panel { display: none; }
+  .panel.active { display: block; }
+
+  .row { margin-bottom: 22px; }
+  label {
+    display: block;
+    font-size: 12.5px;
+    color: var(--muted);
+    margin-bottom: 9px;
+    letter-spacing: 0.01em;
+  }
+  label .hint { color: #7c7260; font-weight: 400; }
+
+  .options { display: flex; gap: 8px; flex-wrap: wrap; }
+  .opt {
+    padding: 8px 14px;
+    border-radius: 7px;
+    border: 1px solid var(--line);
+    background: var(--surface);
+    color: var(--ivory);
+    cursor: pointer;
+    font-size: 13px;
+    transition: border-color .15s ease, background .15s ease;
+  }
+  .opt:hover { border-color: var(--brass); }
+  .opt.selected { border-color: var(--brass); background: #2c2415; color: var(--brass-bright); font-weight: 600; }
+
+  /* the charm gallery renders as catalog tiles, not pill chips */
+  .gallery-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(84px, 1fr)); gap: 10px; }
+  .gallery-grid .opt {
+    display: flex; flex-direction: column; align-items: center; justify-content: flex-start;
+    gap: 6px; padding: 12px 6px 10px; text-align: center;
+  }
+  .gallery-grid .opt img { width: 36px; height: 36px; object-fit: contain; }
+  .gallery-grid .opt span { font-size: 11.5px; line-height: 1.25; }
+
+  .cat-heading {
+    font-family: 'Cormorant Garamond', serif;
+    font-size: 15px;
+    font-weight: 600;
+    color: var(--brass-bright);
+    margin: 18px 0 8px;
+    padding-bottom: 6px;
+    border-bottom: 1px solid var(--line);
+  }
+  .cat-heading:first-child { margin-top: 0; }
+
+  input[type=range] {
+    width: 100%;
+    accent-color: var(--brass);
+    background: transparent;
+  }
+  input[type=color] {
+    width: 42px; height: 32px; border: 1px solid var(--line); border-radius: 6px;
+    background: var(--surface); padding: 2px; cursor: pointer;
+  }
+
+  .stage {
+    display: flex; align-items: center; justify-content: center;
+    width: 220px; height: 220px; margin: 4px auto 22px;
+    border-radius: 50%;
+    background: radial-gradient(circle at 42% 38%, #2b2418, #17130d 72%);
+    border: 1px solid var(--line);
+    box-shadow: inset 0 0 0 7px #0000001a, 0 0 0 1px #000, 0 8px 24px -8px #000a;
+    position: relative;
+  }
+  .stage::before {
+    content: ''; position: absolute; inset: -9px; border-radius: 50%;
+    border: 1px solid var(--brass); opacity: .35; pointer-events: none;
+  }
+  #preview { display: block; }
+
+  button.primary, button.ghost {
+    font-family: 'Work Sans', sans-serif;
+    border-radius: 7px;
+    padding: 10px 16px;
+    font-size: 13.5px;
+    cursor: pointer;
+    transition: filter .15s ease, border-color .15s ease;
+  }
+  button.primary {
+    background: linear-gradient(180deg, var(--brass-bright), var(--brass));
+    color: #1b160d;
+    border: none;
+    font-weight: 600;
+  }
+  button.primary:hover { filter: brightness(1.06); }
+  button.ghost {
+    background: transparent;
+    color: var(--muted);
+    border: 1px solid var(--line);
+  }
+  button.ghost:hover { border-color: var(--brass); color: var(--ivory); }
+
+  .btn-row { display: flex; gap: 10px; flex-wrap: wrap; align-items: center; }
+  .filename { color: var(--muted); font-size: 12px; margin-left: 2px; }
+
+  .two-col { display: flex; gap: 22px; align-items: flex-start; flex-wrap: wrap; margin-bottom: 4px; }
+  .thread-sidebar {
+    flex: 1; min-width: 160px;
+    padding: 14px; border: 1px solid var(--line); border-radius: 8px; background: var(--surface);
+  }
+  .side-heading { display: block; font-size: 12.5px; color: var(--muted); margin-bottom: 12px; }
+  .thread-sidebar .row { margin-bottom: 14px; }
+  .thread-sidebar .row label { font-size: 12px; margin-bottom: 6px; }
+  .thread-sidebar .opt { font-size: 12.5px; padding: 7px 10px; }
+
+  .manage-row {
+    display: flex; align-items: center; gap: 10px;
+    padding: 10px; margin-bottom: 8px;
+    background: var(--surface); border: 1px solid var(--line); border-radius: 8px;
+  }
+  .manage-row img { width: 34px; height: 34px; object-fit: contain; flex-shrink: 0; }
+  .manage-row .fields { flex: 1; display: flex; flex-direction: column; gap: 6px; min-width: 0; }
+  .manage-row input[type=text], .manage-row select {
+    width: 100%; padding: 6px 8px; border-radius: 5px; border: 1px solid var(--line);
+    background: #15110c; color: var(--ivory); font-family: 'Work Sans', sans-serif; font-size: 12.5px;
+  }
+  .manage-row .btns { display: flex; flex-direction: column; gap: 6px; flex-shrink: 0; }
+  .manage-row button { font-size: 11.5px; padding: 6px 9px; white-space: nowrap; }
+  .manage-empty { color: var(--muted); font-size: 12.5px; font-style: italic; }
+
+  #timerDisplay {
+    font-family: 'Cormorant Garamond', serif;
+    font-size: 46px;
+    font-weight: 600;
+    text-align: center;
+    margin: 18px 0;
+    color: var(--brass-bright);
+    letter-spacing: 0.02em;
+  }
+</style>
+</head>
+<body>
+
+<h1>Charm Studio</h1>
+<div class="sub">Design a charm for the cord — changes appear live on the floating overlay.</div>
+
+<div class="tabs">
+  <div class="tab active" data-tab="build">Build</div>
+  <div class="tab" data-tab="focus">Focus Timer</div>
+</div>
+
+<!-- BUILD TAB -->
+<div class="panel active" id="panel-build">
+
+  <div class="row">
+    <label>Charms on the cord</label>
+    <div class="options" id="countOpts"></div>
+  </div>
+
+  <div class="row" id="slotTabsRow" style="display:none">
+    <label id="slotTabsLabel">Position</label>
+    <div class="options" id="slotTabs"></div>
+  </div>
+
+  <div class="stage"><canvas id="preview" width="220" height="220"></canvas></div>
+
+  <div class="row">
+    <label>Your own charm</label>
+    <input type="file" id="importInput" accept="image/*" style="display:none" />
+    <div class="btn-row">
+      <button class="primary" id="importBtn" type="button">Import from file&hellip;</button>
+      <button class="ghost" id="openFolderBtn" type="button">Open the charms folder</button>
+    </div>
+    <span id="importedName" class="filename"></span>
+    <div id="importClearRow" style="display:none;margin-top:8px">
+      <span class="opt" id="clearImport">Use a gallery charm instead</span>
+    </div>
+
+    <div id="saveToGalleryForm" style="display:none;margin-top:14px;padding:14px;border:1px solid var(--line);border-radius:8px;background:var(--surface);">
+      <label style="margin-bottom:6px">Save this permanently to a category</label>
+      <input id="saveLabel" type="text" placeholder="Charm name" style="width:100%;margin-bottom:8px;padding:8px 10px;border-radius:6px;border:1px solid var(--line);background:#15110c;color:var(--ivory);font-family:'Work Sans',sans-serif;font-size:13px;" />
+      <select id="saveCategory" style="width:100%;margin-bottom:10px;padding:8px 10px;border-radius:6px;border:1px solid var(--line);background:#15110c;color:var(--ivory);font-family:'Work Sans',sans-serif;font-size:13px;">
+        <option>Protection</option>
+        <option>Luck &amp; Fortune</option>
+        <option>Ritual &amp; Home</option>
+        <option>Classic</option>
+        <option>Marvel</option>
+        <option>Nature &amp; Emotion</option>
+        <option>God &amp; Deities</option>
+        <option value="__other">Other (type below)&hellip;</option>
+      </select>
+      <input id="saveCategoryOther" type="text" placeholder="New category name" style="display:none;width:100%;margin-bottom:10px;padding:8px 10px;border-radius:6px;border:1px solid var(--line);background:#15110c;color:var(--ivory);font-family:'Work Sans',sans-serif;font-size:13px;" />
+      <button class="primary" id="saveToGalleryBtn" type="button" style="width:100%">Save to Gallery</button>
+      <div id="saveConfirm" class="filename" style="display:none;margin-top:8px;color:var(--brass-bright);">Saved — it'll show up in the gallery below from now on.</div>
+    </div>
+  </div>
+
+  <div class="two-col">
+    <div class="row" style="flex: 2; min-width: 240px;">
+      <label>Shape <span class="hint" id="shapeMeaning"></span></label>
+      <div id="shapeCategories"></div>
+    </div>
+
+    <div class="thread-sidebar">
+      <label class="side-heading">Thread <span class="hint">(shared by the whole cord)</span></label>
+
+      <div class="row">
+        <label>Style</label>
+        <div class="options" id="ropeOpts" style="flex-direction: column; align-items: stretch;"></div>
+      </div>
+
+      <div class="row" style="margin-bottom: 0;">
+        <label>Length <span class="hint" id="lengthValue"></span></label>
+        <input type="range" id="lengthInput" min="80" max="320" value="180" />
+      </div>
+    </div>
+  </div>
+
+  <div class="row">
+    <label>Colour <span class="hint">(tints the focus-timer fill)</span></label>
+    <input type="color" id="colorInput" value="#c8202f" />
+  </div>
+
+  <div class="row">
+    <label>Size</label>
+    <input type="range" id="sizeInput" min="20" max="150" value="55" />
+  </div>
+
+  <div class="row">
+    <label>Edit selected charm <span class="hint">(fix its category, swap the picture, or remove it)</span></label>
+    <div id="selectedCharmManager"></div>
+  </div>
+</div>
+
+<!-- FOCUS TAB -->
+<div class="panel" id="panel-focus">
+  <div class="row">
+    <label>Focus length (minutes)</label>
+    <input type="range" id="minutesInput" min="5" max="60" step="5" value="25" />
+  </div>
+  <div id="timerDisplay">25:00</div>
+  <button class="primary" id="timerBtn" style="width:100%">Start focus</button>
+  <div class="sub" style="margin-top:14px">
+    All charms on the cord slowly fill with colour while you focus, and settle once time's up.
+  </div>
+</div>
+
+<script src="charm-draw.js"></script>
+<script>
+  // ---------- multi-slot data model ----------
+  function defaultCharm() {
+    return { shape: 'star', customImage: null, importName: '', color: '#c8202f', material: 'metal', size: 55 };
+  }
+  const singleCharm = defaultCharm();                                      // the ONE design used when charmCount === 1
+  const charmsBySlot = { left: defaultCharm(), mid: defaultCharm(), right: defaultCharm() }; // independent designs for 2/3-charm mode
+  let charmCount = 1;
+  let singlePosition = 'mid'; // where the 1 charm sits when charmCount === 1 — position only, not identity
+  let activeSlot = 'mid';     // which of left/mid/right is being edited when charmCount is 2 or 3
+  let charm = singleCharm;    // the charm object the Build panel below is currently editing
+
+  let ropeStyle = 'thread';
+  let ropeLength = 180;
+  let fillAmount = 1;
+  let timerRunning = false;
+
+  function activeSlots() {
+    if (charmCount === 1) return [singlePosition];
+    if (charmCount === 2) return ['left', 'right'];
+    return ['left', 'mid', 'right'];
+  }
+
+  // Which charm object is being edited depends on mode: one shared design for 1-charm
+  // mode (position doesn't change it), or the per-slot design for 2/3-charm mode.
+  function currentCharmRef() {
+    return charmCount === 1 ? singleCharm : charmsBySlot[activeSlot];
+  }
+
+  const ropes = ['thread', 'silk', 'leather', 'wire', 'ribbon', 'chain', 'beads'];
+
+  // ---------- charm count (1/2/3) ----------
+  function renderCountOptions() {
+    const wrap = document.getElementById('countOpts');
+    wrap.innerHTML = '';
+    [1, 2, 3].forEach((n) => {
+      const el = document.createElement('div');
+      el.className = 'opt' + (charmCount === n ? ' selected' : '');
+      el.textContent = n === 1 ? '1 charm' : n + ' charms';
+      el.onclick = () => {
+        charmCount = n;
+        [...wrap.children].forEach((c) => c.classList.remove('selected'));
+        el.classList.add('selected');
+        if (charmCount !== 1 && !activeSlots().includes(activeSlot)) {
+          activeSlot = activeSlots()[0];
+        }
+        charm = currentCharmRef();
+        renderSlotTabs();
+        refreshBuildPanelUI();
+        sendUpdate();
+      };
+      wrap.appendChild(el);
+    });
+  }
+
+  // ---------- where the charm(s) sit: left/mid/right ----------
+  function renderSlotTabs() {
+    const row = document.getElementById('slotTabs');
+    const label = document.getElementById('slotTabsLabel');
+    row.innerHTML = '';
+    document.getElementById('slotTabsRow').style.display = 'block';
+
+    if (charmCount === 1) {
+      label.textContent = 'Position';
+      ['left', 'mid', 'right'].forEach((s) => {
+        const el = document.createElement('div');
+        el.className = 'opt' + (singlePosition === s ? ' selected' : '');
+        el.textContent = s === 'left' ? 'Left' : s === 'mid' ? 'Middle' : 'Right';
+        el.onclick = () => {
+          singlePosition = s; // moves the charm — singleCharm itself never changes
+          renderSlotTabs();
+          sendUpdate();
+        };
+        row.appendChild(el);
+      });
+      return;
+    }
+
+    label.textContent = 'Now editing';
+    activeSlots().forEach((s) => {
+      const el = document.createElement('div');
+      el.className = 'opt' + (activeSlot === s ? ' selected' : '');
+      el.textContent = s === 'left' ? 'Left' : s === 'mid' ? 'Middle' : 'Right';
+      el.onclick = () => {
+        activeSlot = s;
+        charm = currentCharmRef();
+        renderSlotTabs();
+        refreshBuildPanelUI();
+      };
+      row.appendChild(el);
+    });
+  }
+
+  // ---------- shape gallery (built-ins + anything you've saved permanently) ----------
+  const CATEGORY_OPTIONS = ['Protection', 'Luck & Fortune', 'Ritual & Home', 'Classic', 'Marvel', 'Nature & Emotion', 'God & Deities'];
+  let GALLERY = [...BUILT_IN_GALLERY]; // shown briefly before the real (disk-backed) list loads
+  let customList = [];
+  window.charmAPI.listCustomCharms().then((list) => {
+    customList = list;       // the manifest IS the full gallery now — built-ins included, all editable
+    GALLERY = customList;
+    renderShapeCategories();
+    renderSelectedCharmManager();
+  });
+
+  function renderShapeCategories() {
+    const wrap = document.getElementById('shapeCategories');
+    wrap.innerHTML = '';
+
+    const cats = {};
+    GALLERY.forEach((item) => { (cats[item.category] = cats[item.category] || []).push(item); });
+
+    Object.entries(cats).forEach(([catName, items]) => {
+      const heading = document.createElement('div');
+      heading.className = 'cat-heading';
+      heading.textContent = catName;
+      wrap.appendChild(heading);
+
+      const row = document.createElement('div');
+      row.className = 'options gallery-grid';
+      items.forEach((item) => {
+        const el = document.createElement('div');
+        const isSelected = charm.shape === item.key && charm.customImage === item.file;
+        el.className = 'opt' + (isSelected ? ' selected' : '');
+
+        const img = document.createElement('img');
+        img.src = item.file;
+        el.appendChild(img);
+
+        const txt = document.createElement('span');
+        txt.textContent = item.label;
+        el.appendChild(txt);
+
+        el.onclick = () => {
+          charm.shape = item.key;
+          charm.customImage = item.file;
+          charm.importName = '';
+          document.querySelectorAll('#shapeCategories .opt').forEach((c) => c.classList.remove('selected'));
+          el.classList.add('selected');
+          document.getElementById('shapeMeaning').textContent = '— ' + item.meaning;
+          importedName.textContent = '';
+          importClearRow.style.display = 'none';
+          sendUpdate();
+          renderPreview();
+          setTimeout(renderPreview, 50);
+          renderSelectedCharmManager();
+        };
+        row.appendChild(el);
+      });
+      wrap.appendChild(row);
+    });
+
+    const current = GALLERY.find(i => i.key === charm.shape);
+    document.getElementById('shapeMeaning').textContent = current ? '— ' + current.meaning : '';
+  }
+
+  // ---------- manage your saved charms (edit category/name, replace image, delete) ----------
+  function categorySelectHTML(selected) {
+    const known = CATEGORY_OPTIONS.includes(selected);
+    return CATEGORY_OPTIONS.map(c => `<option${c === selected ? ' selected' : ''}>${c}</option>`).join('')
+      + `<option value="__other"${known ? '' : ' selected'}>Other (type below)&hellip;</option>`;
+  }
+
+  // Shows ONE row — for whichever charm is currently selected — not a giant always-open list.
+  function renderSelectedCharmManager() {
+    const wrap = document.getElementById('selectedCharmManager');
+    wrap.innerHTML = '';
+
+    const entry = GALLERY.find((g) => g.key === charm.shape);
+    if (!entry) { wrap.innerHTML = '<div class="manage-empty">Pick a gallery charm above to edit it here.</div>'; return; }
+
+    const row = document.createElement('div');
+    row.className = 'manage-row';
+
+    const img = document.createElement('img');
+    img.src = entry.file;
+    row.appendChild(img);
+
+    const fields = document.createElement('div');
+    fields.className = 'fields';
+    const known = CATEGORY_OPTIONS.includes(entry.category);
+    fields.innerHTML = `
+      <input type="text" value="${entry.label.replace(/"/g, '&quot;')}" class="m-label" />
+      <select class="m-category">${categorySelectHTML(entry.category)}</select>
+      <input type="text" class="m-other" placeholder="New category name"
+             style="display:${known ? 'none' : 'block'}" value="${known ? '' : entry.category.replace(/"/g, '&quot;')}" />
+    `;
+    row.appendChild(fields);
+
+    const mCategory = fields.querySelector('.m-category');
+    const mOther = fields.querySelector('.m-other');
+    mCategory.onchange = () => { mOther.style.display = mCategory.value === '__other' ? 'block' : 'none'; };
+
+    const btns = document.createElement('div');
+    btns.className = 'btns';
+
+    const saveBtn = document.createElement('button');
+    saveBtn.className = 'primary'; saveBtn.textContent = 'Save';
+    saveBtn.onclick = async () => {
+      const label = fields.querySelector('.m-label').value.trim() || entry.label;
+      const category = mCategory.value === '__other' ? (mOther.value.trim() || entry.category) : mCategory.value;
+      const updated = await window.charmAPI.updateCustomCharm({ key: entry.key, label, category });
+      if (updated) {
+        entry.label = updated.label; entry.category = updated.category;
+        renderShapeCategories();
+        renderSelectedCharmManager();
+      }
+    };
+
+    const replaceLabel = document.createElement('label');
+    replaceLabel.className = 'ghost opt';
+    replaceLabel.style.cssText = 'text-align:center;cursor:pointer;';
+    replaceLabel.textContent = 'Replace image';
+    const replaceInput = document.createElement('input');
+    replaceInput.type = 'file'; replaceInput.accept = 'image/*'; replaceInput.style.display = 'none';
+    replaceInput.onchange = async () => {
+      const file = replaceInput.files[0];
+      if (!file) return;
+      const dataUrl = await processImageFile(file);
+      await window.charmAPI.replaceCustomCharmImage({ key: entry.key, dataUrl });
+      img.src = dataUrl;
+      [singleCharm, charmsBySlot.left, charmsBySlot.mid, charmsBySlot.right].forEach((c) => {
+        if (c.shape === entry.key) c.customImage = dataUrl;
+      });
+      renderShapeCategories();
+      renderPreview();
+      sendUpdate();
+    };
+    replaceLabel.appendChild(replaceInput);
+
+    const deleteBtn = document.createElement('button');
+    deleteBtn.className = 'ghost'; deleteBtn.textContent = 'Delete';
+    deleteBtn.onclick = async () => {
+      if (!confirm(`Delete "${entry.label}" permanently?`)) return;
+      await window.charmAPI.deleteCustomCharm(entry.key);
+      customList = customList.filter((e) => e.key !== entry.key);
+      GALLERY = GALLERY.filter((e) => e.key !== entry.key);
+      [singleCharm, charmsBySlot.left, charmsBySlot.mid, charmsBySlot.right].forEach((c) => {
+        if (c.shape === entry.key) { c.shape = GALLERY[0].key; c.customImage = GALLERY[0].file; }
+      });
+      renderShapeCategories();
+      refreshBuildPanelUI(); // re-renders this panel too, now pointed at the fallback charm
+      sendUpdate();
+    };
+
+    btns.appendChild(saveBtn);
+    btns.appendChild(replaceLabel);
+    btns.appendChild(deleteBtn);
+    row.appendChild(btns);
+    wrap.appendChild(row);
+  }
+
+  // ---------- rope style (shared across the whole cord, not per-charm) ----------
+  function renderRopeOptions() {
+    const container = document.getElementById('ropeOpts');
+    container.innerHTML = '';
+    ropes.forEach((val) => {
+      const el = document.createElement('div');
+      el.className = 'opt' + (ropeStyle === val ? ' selected' : '');
+      el.textContent = val;
+      el.onclick = () => {
+        ropeStyle = val;
+        [...container.children].forEach((c) => c.classList.remove('selected'));
+        el.classList.add('selected');
+        sendUpdate();
+      };
+      container.appendChild(el);
+    });
+  }
+
+  // ---------- import your own charm image (applies to the currently edited slot) ----------
+  const importInput = document.getElementById('importInput');
+  const importBtn = document.getElementById('importBtn');
+  const importedName = document.getElementById('importedName');
+  const importClearRow = document.getElementById('importClearRow');
+  const saveToGalleryForm = document.getElementById('saveToGalleryForm');
+  const saveLabel = document.getElementById('saveLabel');
+  const saveCategory = document.getElementById('saveCategory');
+  const saveCategoryOther = document.getElementById('saveCategoryOther');
+  const saveConfirm = document.getElementById('saveConfirm');
+
+  importBtn.onclick = () => importInput.click();
+  document.getElementById('openFolderBtn').onclick = () => window.charmAPI.openCharmsFolder();
+
+  saveCategory.onchange = () => {
+    saveCategoryOther.style.display = saveCategory.value === '__other' ? 'block' : 'none';
+  };
+
+  document.getElementById('saveToGalleryBtn').onclick = async () => {
+    const label = saveLabel.value.trim() || 'My charm';
+    const category = saveCategory.value === '__other'
+      ? (saveCategoryOther.value.trim() || 'Classic')
+      : saveCategory.value;
+
+    const entry = await window.charmAPI.saveCustomCharm({ dataUrl: charm.customImage, label, category });
+    GALLERY.push(entry);
+    customList.push(entry);
+
+    // point this charm at the now-permanently-saved file instead of the raw import data
+    charm.shape = entry.key;
+    charm.customImage = entry.file;
+    charm.importName = '';
+
+    saveConfirm.style.display = 'block';
+    setTimeout(() => {
+      saveToGalleryForm.style.display = 'none';
+      saveConfirm.style.display = 'none';
+      importedName.textContent = '';
+      importClearRow.style.display = 'none';
+    }, 1400);
+
+    renderShapeCategories();
+    renderSelectedCharmManager();
+    sendUpdate();
+  };
+
+  // Trims transparent/near-white padding, then resizes down to our working size.
+  // Returns a Promise<dataURL>. Shared by both "Import" and "Replace image".
+  function processImageFile(file) {
+    return new Promise((resolve) => {
+      const reader = new FileReader();
+      reader.onload = (e) => {
+        const rawImg = new Image();
+        rawImg.onload = () => {
+          const full = document.createElement('canvas');
+          full.width = rawImg.width; full.height = rawImg.height;
+          const fctx = full.getContext('2d');
+          fctx.drawImage(rawImg, 0, 0);
+          const { data } = fctx.getImageData(0, 0, full.width, full.height);
+
+          let minX = full.width, minY = full.height, maxX = 0, maxY = 0, found = false;
+          for (let y = 0; y < full.height; y += 2) {
+            for (let x = 0; x < full.width; x += 2) {
+              const i = (y * full.width + x) * 4;
+              const alpha = data[i + 3];
+              const isWhiteish = data[i] > 245 && data[i + 1] > 245 && data[i + 2] > 245;
+              if (alpha > 15 && !isWhiteish) {
+                found = true;
+                if (x < minX) minX = x; if (x > maxX) maxX = x;
+                if (y < minY) minY = y; if (y > maxY) maxY = y;
+              }
+            }
+          }
+          if (!found) { minX = 0; minY = 0; maxX = full.width; maxY = full.height; }
+          const pad = 4;
+          minX = Math.max(0, minX - pad); minY = Math.max(0, minY - pad);
+          maxX = Math.min(full.width, maxX + pad); maxY = Math.min(full.height, maxY + pad);
+          const cw = maxX - minX, ch = maxY - minY;
+
+          const MAX = 260;
+          const scale = Math.min(1, MAX / Math.max(cw, ch));
+          const w = Math.round(cw * scale);
+          const h = Math.round(ch * scale);
+          const off = document.createElement('canvas');
+          off.width = w; off.height = h;
+          off.getContext('2d').drawImage(full, minX, minY, cw, ch, 0, 0, w, h);
+          resolve(off.toDataURL('image/png'));
+        };
+        rawImg.src = e.target.result;
+      };
+      reader.readAsDataURL(file);
+    });
+  }
+
+  importInput.onchange = async () => {
+    const file = importInput.files[0];
+    if (!file) return;
+    {
+        charm.shape = 'custom';
+        charm.customImage = await processImageFile(file);
+        charm.importName = file.name;
+        importedName.textContent = file.name + ' (not saved to gallery yet)';
+        importClearRow.style.display = 'block';
+
+        saveLabel.value = file.name.replace(/\.[^.]+$/, '');
+        saveCategory.value = 'Classic';
+        saveCategoryOther.style.display = 'none';
+        saveConfirm.style.display = 'none';
+        saveToGalleryForm.style.display = 'block';
+
+        document.getElementById('shapeMeaning').textContent = '';
+        document.querySelectorAll('#shapeCategories .opt').forEach((c) => c.classList.remove('selected'));
+        sendUpdate();
+        renderPreview();
+        setTimeout(renderPreview, 50);
+    }
+  };
+
+  document.getElementById('clearImport').onclick = () => {
+    const first = GALLERY[0];
+    charm.shape = first.key;
+    charm.customImage = first.file;
+    charm.importName = '';
+    importedName.textContent = '';
+    importClearRow.style.display = 'none';
+    saveToGalleryForm.style.display = 'none';
+    renderShapeCategories();
+    sendUpdate();
+    renderPreview();
+    renderSelectedCharmManager();
+  };
+
+  document.getElementById('colorInput').oninput = (e) => {
+    charm.color = e.target.value;
+    sendUpdate();
+    renderPreview();
+  };
+  document.getElementById('sizeInput').oninput = (e) => {
+    charm.size = Number(e.target.value);
+    sendUpdate();
+    renderPreview();
+  };
+
+  const lengthInput = document.getElementById('lengthInput');
+  const lengthValue = document.getElementById('lengthValue');
+  function updateLengthLabel() { lengthValue.textContent = `— ${ropeLength}px`; }
+  lengthInput.oninput = (e) => {
+    ropeLength = Number(e.target.value);
+    updateLengthLabel();
+    sendUpdate();
+  };
+
+  // ---------- preview + refresh ----------
+  const preview = document.getElementById('preview');
+  const pctx = preview.getContext('2d');
+  function renderPreview() {
+    pctx.clearRect(0, 0, preview.width, preview.height);
+    pctx.save();
+    pctx.translate(preview.width / 2, preview.height / 2);
+    drawCharm(pctx, charm, fillAmount, 'center');
+    pctx.restore();
+  }
+
+  function refreshBuildPanelUI() {
+    renderShapeCategories();
+    document.getElementById('colorInput').value = charm.color;
+    document.getElementById('sizeInput').value = charm.size;
+    importedName.textContent = charm.customImage && !GALLERY.some(g => g.file === charm.customImage)
+      ? (charm.importName || 'Imported image') : '';
+    importClearRow.style.display = importedName.textContent ? 'block' : 'none';
+    renderPreview();
+    renderSelectedCharmManager();
+  }
+
+  let saveStateTimer = null;
+  function persistState() {
+    clearTimeout(saveStateTimer);
+    saveStateTimer = setTimeout(() => {
+      window.charmAPI.saveState({ charmCount, singlePosition, activeSlot, ropeStyle, ropeLength, singleCharm, charmsBySlot });
+    }, 300); // debounced so dragging a slider doesn't hammer disk writes
+  }
+
+  function sendUpdate() {
+    const charms = charmCount === 1
+      ? [{ ...singleCharm, slot: singlePosition }]
+      : activeSlots().map((s) => ({ ...charmsBySlot[s], slot: s }));
+    window.charmAPI.send({ charms, rope: ropeStyle, ropeLength, fillAmount, timerRunning });
+    persistState();
+  }
+
+  // give every slot a sensible default gallery image to start from — overwritten below
+  // if a previous session's charm(s) are found saved on disk.
+  [singleCharm, ...Object.values(charmsBySlot)].forEach((c) => {
+    c.shape = BUILT_IN_GALLERY[0].key;
+    c.customImage = BUILT_IN_GALLERY[0].file;
+  });
+
+  (async () => {
+    const saved = await window.charmAPI.loadState();
+    if (saved) {
+      charmCount = saved.charmCount ?? charmCount;
+      singlePosition = saved.singlePosition ?? singlePosition;
+      activeSlot = saved.activeSlot ?? activeSlot;
+      ropeStyle = saved.ropeStyle ?? ropeStyle;
+      ropeLength = saved.ropeLength ?? ropeLength;
+      if (saved.singleCharm) Object.assign(singleCharm, saved.singleCharm);
+      if (saved.charmsBySlot) {
+        ['left', 'mid', 'right'].forEach((s) => {
+          if (saved.charmsBySlot[s]) Object.assign(charmsBySlot[s], saved.charmsBySlot[s]);
+        });
+      }
+      charm = currentCharmRef();
+    }
+    renderCountOptions();
+    renderSlotTabs();
+    renderRopeOptions();
+    refreshBuildPanelUI();
+    lengthInput.value = ropeLength;
+    updateLengthLabel();
+    sendUpdate(); // push the restored (or default) scene to the overlay now that it's settled
+  })();
+
+  // ---------- tabs (Build / Focus Timer) ----------
+  document.querySelectorAll('.tab').forEach((tab) => {
+    tab.onclick = () => {
+      document.querySelectorAll('.tab').forEach((t) => t.classList.remove('active'));
+      document.querySelectorAll('.panel').forEach((p) => p.classList.remove('active'));
+      tab.classList.add('active');
+      document.getElementById('panel-' + tab.dataset.tab).classList.add('active');
+    };
+  });
+
+  // ---------- focus timer ----------
+  let totalSeconds = 25 * 60;
+  let secondsLeft = totalSeconds;
+  let timerHandle = null;
+
+  const minutesInput = document.getElementById('minutesInput');
+  const timerDisplay = document.getElementById('timerDisplay');
+  const timerBtn = document.getElementById('timerBtn');
+
+  function updateDisplay() {
+    const m = Math.floor(secondsLeft / 60).toString().padStart(2, '0');
+    const s = (secondsLeft % 60).toString().padStart(2, '0');
+    timerDisplay.textContent = `${m}:${s}`;
+  }
+
+  minutesInput.oninput = () => {
+    if (timerRunning) return;
+    totalSeconds = Number(minutesInput.value) * 60;
+    secondsLeft = totalSeconds;
+    updateDisplay();
+  };
+
+  timerBtn.onclick = () => {
+    if (!timerRunning) {
+      timerRunning = true;
+      timerBtn.textContent = 'Stop';
+      timerHandle = setInterval(() => {
+        secondsLeft -= 1;
+        fillAmount = 1 - secondsLeft / totalSeconds;
+        updateDisplay();
+        sendUpdate();
+        if (secondsLeft <= 0) {
+          clearInterval(timerHandle);
+          timerRunning = false;
+          timerBtn.textContent = 'Start focus';
+          fillAmount = 1;
+          sendUpdate();
+          alert('Focus session done!');
+        }
+      }, 1000);
+    } else {
+      clearInterval(timerHandle);
+      timerRunning = false;
+      timerBtn.textContent = 'Start focus';
+      secondsLeft = totalSeconds;
+      fillAmount = 1;
+      updateDisplay();
+      sendUpdate();
+    }
+  };
+
+  updateDisplay();
+  sendUpdate();
+</script>
+</body>
+</html>

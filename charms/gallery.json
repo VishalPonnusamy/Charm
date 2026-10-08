@@ -1,0 +1,121 @@
+[
+  {
+    "key": "nazar",
+    "label": "Nazar Boncuğu",
+    "category": "Protection",
+    "meaning": "Wards off bad energy",
+    "file": "charms/nazar.png"
+  },
+  {
+    "key": "hamsa",
+    "label": "Hamsa",
+    "category": "Protection",
+    "meaning": "Blessing & protection",
+    "file": "charms/hamsa.png"
+  },
+  {
+    "key": "horseshoe",
+    "label": "Horseshoe",
+    "category": "Protection",
+    "meaning": "Good luck at your door",
+    "file": "charms/horseshoe.png"
+  },
+  {
+    "key": "guardian",
+    "label": "Drishti Bommai",
+    "category": "Protection",
+    "meaning": "Guards against the evil eye",
+    "file": "charms/guardian.png"
+  },
+  {
+    "key": "nimbu-mirchi",
+    "label": "Nimbu-mirchi",
+    "category": "Luck & Fortune",
+    "meaning": "Wards off misfortune",
+    "file": "charms/nimbu-mirchi.png"
+  },
+  {
+    "key": "daruma",
+    "label": "Daruma",
+    "category": "Luck & Fortune",
+    "meaning": "Perseverance & wishes",
+    "file": "charms/daruma.png"
+  },
+  {
+    "key": "maneki-neko",
+    "label": "Maneki-neko",
+    "category": "Luck & Fortune",
+    "meaning": "Beckons good fortune",
+    "file": "charms/maneki-neko.png"
+  },
+  {
+    "key": "red-knot",
+    "label": "Pánchángjié",
+    "category": "Luck & Fortune",
+    "meaning": "Harmony & good fortune",
+    "file": "charms/red-knot.png"
+  },
+  {
+    "key": "scarab",
+    "label": "Scarab",
+    "category": "Ritual & Home",
+    "meaning": "Renewal & protection",
+    "file": "charms/scarab.png"
+  },
+  {
+    "key": "bell",
+    "label": "Ghanta",
+    "category": "Ritual & Home",
+    "meaning": "Calls in good news",
+    "file": "charms/bell.png"
+  },
+  {
+    "key": "dreamcatcher",
+    "label": "Dream Catcher",
+    "category": "Ritual & Home",
+    "meaning": "Filters bad dreams",
+    "file": "charms/dreamcatcher.png"
+  },
+  {
+    "key": "himmeli",
+    "label": "Himmeli",
+    "category": "Ritual & Home",
+    "meaning": "Light & good harvest",
+    "file": "charms/himmeli.png"
+  },
+  {
+    "key": "bead",
+    "label": "Bead",
+    "category": "Classic",
+    "meaning": "Simplicity",
+    "file": "charms/bead.png"
+  },
+  {
+    "key": "camera",
+    "label": "Camera",
+    "category": "Classic",
+    "meaning": "Memories worth keeping",
+    "file": "charms/camera.png"
+  },
+  {
+    "key": "gstar",
+    "label": "Star",
+    "category": "Classic",
+    "meaning": "Hope & guidance",
+    "file": "charms/star.png"
+  },
+  {
+    "key": "gheart",
+    "label": "Heart",
+    "category": "Classic",
+    "meaning": "Love & connection",
+    "file": "charms/heart.png"
+  },
+  {
+    "key": "gdiamond",
+    "label": "Diamond",
+    "category": "Classic",
+    "meaning": "Strength & clarity",
+    "file": "charms/diamond.png"
+  }
+]

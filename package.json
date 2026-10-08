@@ -1,0 +1,9 @@
+{
+  "name": "charm-studio",
+  "version": "2.0.0",
+  "description": "A custom charm builder + a swinging charm that hangs from the top of your screen",
+  "main": "main.js",
+  "scripts": {
+    "start": "electron ."
+  }
+}
