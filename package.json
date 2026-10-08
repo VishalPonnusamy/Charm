@@ -5,5 +5,8 @@
   "main": "main.js",
   "scripts": {
     "start": "electron ."
+  },
+  "dependencies": {
+    "electron": "^31.7.7"
   }
 }
