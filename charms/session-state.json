@@ -2,20 +2,20 @@
   "charmCount": 1,
   "singlePosition": "right",
   "activeSlot": "right",
-  "ropeStyle": "leather",
-  "ropeLength": 231,
+  "ropeStyle": "ribbon",
+  "ropeLength": 246,
   "singleCharm": {
-    "shape": "custom-f1-logo-1791478241461",
-    "customImage": "charms/custom-f1-logo.png",
+    "shape": "gstar",
+    "customImage": "charms/star.png",
     "importName": "",
     "color": "#c8202f",
     "material": "metal",
-    "size": 62
+    "size": 59
   },
   "charmsBySlot": {
     "left": {
-      "shape": "custom-iron-man-helmet-1791475875422",
-      "customImage": "charms/custom-iron-man-helmet.png",
+      "shape": "nimbu-mirchi",
+      "customImage": "charms/nimbu-mirchi.png",
       "importName": "",
       "color": "#c8202f",
       "material": "metal",
@@ -30,8 +30,8 @@
       "size": 55
     },
     "right": {
-      "shape": "nazar",
-      "customImage": "charms/nazar.png",
+      "shape": "gheart",
+      "customImage": "charms/heart.png",
       "importName": "",
       "color": "#c8202f",
       "material": "metal",
